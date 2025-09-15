@@ -39,7 +39,7 @@ namespace Services.Implementations
             return _context.BorrowRecords
                 .Include(x => x.Book)
                 .Include(x => x.Reader)
-                .Where(x => x.Book.AvailableCopies > 0)
+                .Where(x => x.ReturnDate == null)
                 .Select(x => new BorrowRecordDTO
                 {
                     ReaderName = x.Reader.FullName,
@@ -66,7 +66,7 @@ namespace Services.Implementations
                     ReaderId = x.ReaderId,
                     BookId = x.BookId
                 })
-                .FirstOrDefault();
+                .SingleOrDefault();
         }
 
         public (ServiceResult<BorrowRecordDTO>, int id) Add(BorrowRecordDTO borrowRecordDTO)
@@ -88,7 +88,7 @@ namespace Services.Implementations
 
             if (reader is null)
             {
-                return (ServiceResult<BorrowRecordDTO>.Fail($"Reader with name {borrowRecordDTO.ReaderId} was not found."), 0);
+                return (ServiceResult<BorrowRecordDTO>.Fail($"Reader with id {borrowRecordDTO.ReaderId} was not found."), 0);
             }
 
 
@@ -104,8 +104,17 @@ namespace Services.Implementations
             book.AvailableCopies--;
             _context.SaveChanges();
 
-            return (ServiceResult<BorrowRecordDTO>.Ok(borrowRecordDTO), borrowRecord.Id);
+            var dto = new BorrowRecordDTO
+            {
+                BookName = book.Title,
+                ReaderName = reader.FullName,
+                Email = reader.Email,
+                AuthorName = book.Author,
+                ReaderId = reader.Id,
+                BookId = book.Id
+            };
 
+            return (ServiceResult<BorrowRecordDTO>.Ok(dto), borrowRecord.Id);
         }
 
         public ServiceResult<BorrowRecordDTO> Update(int id, BorrowRecordDTO borrowRecordDTO)
@@ -138,12 +147,28 @@ namespace Services.Implementations
                 return ServiceResult<BorrowRecordDTO>.Fail($"Reader with name {borrowRecordDTO.ReaderName} was not found.");
             }
 
+            if (oldBorrowRecord.BookId != book.Id)
+            {
+                oldBorrowRecord.Book.AvailableCopies++; 
+                book.AvailableCopies--;             
+            }
+
             oldBorrowRecord.ReaderId = reader.Id;
             oldBorrowRecord.BookId = book.Id;
 
             _context.SaveChanges();
 
-            return ServiceResult<BorrowRecordDTO>.Ok(borrowRecordDTO);
+            var dto = new BorrowRecordDTO
+            {
+                BookId = oldBorrowRecord.BookId,
+                BookName = oldBorrowRecord.Book.Title,
+                AuthorName = oldBorrowRecord.Book.Author,
+                ReaderId = oldBorrowRecord.ReaderId,
+                ReaderName = oldBorrowRecord.Reader.FullName,
+                Email = oldBorrowRecord.Reader.Email,
+            };
+
+            return ServiceResult<BorrowRecordDTO>.Ok(dto);
 
         }
 

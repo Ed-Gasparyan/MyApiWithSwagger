@@ -58,7 +58,7 @@ namespace Services.Implementations
                     Email = x.Email,
                     PhoneNumber = x.PhoneNumber
                 })
-                .FirstOrDefault();
+                .SingleOrDefault();
         }
 
         public (ServiceResult<ReaderDTO>,int id) Add(ReaderDTO obj)
@@ -89,42 +89,47 @@ namespace Services.Implementations
             _context.Readers.Add(reader);
             _context.SaveChanges();
 
-            return (ServiceResult<ReaderDTO>.Ok(obj),reader.Id);
+            var dto = new ReaderDTO 
+            {
+                FullName = reader.FullName,
+                Email = reader.Email,
+                PhoneNumber = reader.PhoneNumber
+            };
+
+
+            return (ServiceResult<ReaderDTO>.Ok(dto),reader.Id);
         }
 
         public ServiceResult<ReaderDTO> Update(int id, ReaderDTO obj)
         {
             var reader = _context.Readers.Find(id);
-            
             if (reader is null)
-            {
                 return ServiceResult<ReaderDTO>.Fail("Reader with the given ID was not found");
-            }
 
-            bool checkEmail = _context.Readers
-                .Any(x => x.Email == obj.Email);
-
+            bool checkEmail = _context.Readers.Any(x => x.Email == obj.Email && x.Id != id);
             if (checkEmail)
-            {
                 return ServiceResult<ReaderDTO>.Fail("A reader with the same email already exists.");
-            }
 
-            bool checkPhoneNumber = _context.Readers
-                 .Any(x => x.PhoneNumber == obj.PhoneNumber);
-
+            bool checkPhoneNumber = _context.Readers.Any(x => x.PhoneNumber == obj.PhoneNumber && x.Id != id);
             if (checkPhoneNumber)
-            {
                 return ServiceResult<ReaderDTO>.Fail("A reader with the same phone number already exists.");
-            }
 
             reader.FullName = obj.FullName;
             reader.Email = obj.Email;
             reader.PhoneNumber = obj.PhoneNumber;
 
             _context.SaveChanges();
-            return ServiceResult<ReaderDTO>.Ok(obj);
 
+            var updatedDto = new ReaderDTO
+            {
+                FullName = reader.FullName,
+                Email = reader.Email,
+                PhoneNumber = reader.PhoneNumber
+            };
+
+            return ServiceResult<ReaderDTO>.Ok(updatedDto);
         }
+
 
         public ServiceResult<bool> Delete(int id)
         {

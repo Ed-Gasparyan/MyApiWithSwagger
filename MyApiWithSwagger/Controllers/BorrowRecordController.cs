@@ -14,7 +14,7 @@ namespace MyApiWithSwagger.Controllers
     [ApiController]
     public class BorrowRecordController : ControllerBase
     {
-        private readonly IBorrowRecordService  _borrowRecordService;
+        private readonly IBorrowRecordService _borrowRecordService;
 
         public BorrowRecordController(IBorrowRecordService bookRecordService)
         {
@@ -22,16 +22,27 @@ namespace MyApiWithSwagger.Controllers
         }
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<BorrowRecordDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetAll()
         {
-            return Ok(_borrowRecordService.GetAll());
+            var allBorrowRecords = _borrowRecordService.GetAll();
+            if (!allBorrowRecords.Any())
+            {
+                return NotFound("There are currently no records․");
+            }
+            return Ok(allBorrowRecords);
         }
 
         [HttpGet("active")]
         [ProducesResponseType(typeof(IEnumerable<BorrowRecordDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetActiveBorrows()
         {
             var activeBorrows = _borrowRecordService.GetActiveBorrows();
+            if (!activeBorrows.Any())
+            {
+                return NotFound("There are no active records at this time.");
+            }
             return Ok(activeBorrows);
         }
 
@@ -59,6 +70,9 @@ namespace MyApiWithSwagger.Controllers
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+
         public IActionResult Add(BorrowRecordDTO borrowRecordDTO)
         {
             if (borrowRecordDTO is null)
@@ -70,16 +84,22 @@ namespace MyApiWithSwagger.Controllers
                 return BadRequest(ModelState);
             }
 
-            var (result,borrowRecordId) = _borrowRecordService.Add(borrowRecordDTO);
+            var (result, borrowRecordId) = _borrowRecordService.Add(borrowRecordDTO);
 
             if (!result.Success)
             {
                 if (result.ErrorMessage!.Contains("not found"))
+                {
                     return NotFound(new { error = result.ErrorMessage });
+                }
+                else if (result.ErrorMessage!.Contains("exists"))
+                {
+                    return Conflict(new { error = result.ErrorMessage });
+                }
 
                 return BadRequest(new { error = result.ErrorMessage });
             }
-            return CreatedAtAction(nameof(Get),new { id = borrowRecordId },result.Data);
+            return CreatedAtAction(nameof(Get), new { id = borrowRecordId }, result.Data);
         }
 
 
@@ -109,7 +129,13 @@ namespace MyApiWithSwagger.Controllers
             if (!result.Success)
             {
                 if (result.ErrorMessage!.Contains("not found"))
+                {
                     return NotFound(new { error = result.ErrorMessage });
+                }
+                else if (result.ErrorMessage!.Contains("exists"))
+                {
+                    return Conflict(new { error = result.ErrorMessage });
+                }
 
                 return BadRequest(new { error = result.ErrorMessage });
             }
@@ -127,7 +153,6 @@ namespace MyApiWithSwagger.Controllers
             {
                 return BadRequest(new { error = "Invalid borrow record id." });
             }
-
 
             var result = _borrowRecordService.ReturnBook(id);
             if (!result.Success)

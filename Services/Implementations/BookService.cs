@@ -77,7 +77,7 @@ namespace Services.Implementations
                     PublishedYear = x.PublishedYear,
                     TotalCopies = x.TotalCopies,
                 })
-                .FirstOrDefault();
+                .SingleOrDefault();
         }
         public (ServiceResult<BookDTO>, int id) Add(BookDTO obj)
         {
@@ -90,7 +90,7 @@ namespace Services.Implementations
             }
 
             bool checkTitleAuthor = _context.Books
-                 .Any(x => x.Title == obj.Title && x.Author == obj.Title);
+                 .Any(x => x.Title == obj.Title && x.Author == obj.Author);
 
             if (checkTitleAuthor)
             {
@@ -110,7 +110,16 @@ namespace Services.Implementations
             _context.Books.Add(book);
             _context.SaveChanges();
 
-            return (ServiceResult<BookDTO>.Ok(obj), book.Id);
+            var dto = new BookDTO
+            {
+                Author = book.Author,
+                Title = book.Title,
+                ISBN = book.ISBN,
+                PublishedYear = book.PublishedYear,
+                TotalCopies = book.TotalCopies
+            };
+
+            return (ServiceResult<BookDTO>.Ok(dto), book.Id);
         }
 
         public ServiceResult<BookDTO> Update(int id, BookDTO obj)
@@ -120,39 +129,42 @@ namespace Services.Implementations
             {
                 return ServiceResult<BookDTO>.Fail("Book with the given ID was not found");
             }
-            int borrowedCount = book.TotalCopies - book.AvailableCopies;
 
+            int borrowedCount = book.TotalCopies - book.AvailableCopies;
             if (borrowedCount > obj.TotalCopies)
             {
                 return ServiceResult<BookDTO>.Fail($"Cannot set TotalCopies to {obj.TotalCopies} because {borrowedCount} copies are already borrowed.");
             }
 
-            bool checkISBN = _context.Books
-                .Any(x => x.ISBN == obj.ISBN);
-
-            if (checkISBN)
+            if (_context.Books.Any(x => x.ISBN == obj.ISBN && x.Id != id))
             {
                 return ServiceResult<BookDTO>.Fail("A book with the same ISBN already exists.");
             }
 
-            bool checkTitleAuthor = _context.Books
-                 .Any(x => x.Title == obj.Title && x.Author == obj.Title);
-
-            if (checkTitleAuthor)
+            if (_context.Books.Any(x => x.Title == obj.Title && x.Author == obj.Author && x.Id != id))
             {
                 return ServiceResult<BookDTO>.Fail("A book with the same title and author already exists.");
             }
 
             book.Author = obj.Author;
-            book.Title = obj.Title;  
+            book.Title = obj.Title;
             book.PublishedYear = obj.PublishedYear;
             book.ISBN = obj.ISBN;
-            book.AvailableCopies += obj.TotalCopies - book.TotalCopies; 
+            book.AvailableCopies += obj.TotalCopies - book.TotalCopies;
             book.TotalCopies = obj.TotalCopies;
 
             _context.SaveChanges();
-            return ServiceResult<BookDTO>.Ok(obj);
 
+            var dto = new BookDTO
+            {
+                Author = book.Author,
+                Title = book.Title,
+                ISBN = book.ISBN,
+                PublishedYear = book.PublishedYear,
+                TotalCopies = book.TotalCopies
+            };
+
+            return ServiceResult<BookDTO>.Ok(dto);
         }
         public ServiceResult<bool> Delete(int id)
         {

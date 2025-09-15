@@ -24,27 +24,44 @@ namespace MyApiWithSwagger.Controllers
         [ProducesResponseType(typeof(List<BookDTO>), StatusCodes.Status200OK)]
         public IActionResult GetAll()
         {
-            return Ok(_bookService.GetAll().ToList());
+            var allBooks = _bookService.GetAll();
+            if (!allBooks.Any())
+            {
+                return NotFound("There are currently no books․");
+            }
+            return Ok(allBooks);
         }
 
         [HttpGet("available")]
         [ProducesResponseType(typeof(List<BookDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public IActionResult GetAvailableBooks()
         {
-            return Ok(_bookService.GetAvailableBooks().ToList());
+            var availableBooks = _bookService.GetAvailableBooks();
+            if (!availableBooks.Any())
+            {
+                return NotFound("There are no books available at this time.");
+            }
+            return Ok(availableBooks);
         }
 
-        [HttpGet("book/{bookId}/history")]
-        [ProducesResponseType(typeof(List<ReaderDTO>), StatusCodes.Status200OK)]
+        [HttpGet("{bookId}/history")]
+        [ProducesResponseType(typeof(List<BorrowRecordDTO>), StatusCodes.Status200OK)]
         public IActionResult GetBookHistory(int bookId)
         {
-            return Ok(_bookService.GetBookHistory(bookId).ToList());
+            var bookHistory = _bookService.GetBookHistory(bookId).ToList();
+            if (!bookHistory.Any())
+            {
+                return NotFound($"No history found for book with ID {bookId}");
+            }
+            return Ok(bookHistory);
         }
 
 
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(BookDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
         public IActionResult Get(int id)
         {
             if (id <= 0)
@@ -63,6 +80,7 @@ namespace MyApiWithSwagger.Controllers
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public IActionResult Add(BookDTO bookDTO)
         {
@@ -76,8 +94,11 @@ namespace MyApiWithSwagger.Controllers
                 return BadRequest(ModelState);
             }
 
-            var (result,bookId) = _bookService.Add(bookDTO);
-
+            var (result, bookId) = _bookService.Add(bookDTO);
+            if (!result.Success)
+            {
+                return Conflict(new { error = result.ErrorMessage });
+            }
             return CreatedAtAction(nameof(Get), new { id = bookId }, result.Data);
         }
 
@@ -90,6 +111,11 @@ namespace MyApiWithSwagger.Controllers
             if (bookDTO is null)
             {
                 return BadRequest(new { error = "Book is required." });
+            }
+
+            if (id <= 0)
+            {
+                return BadRequest(new { error = "Invalid book id." });
             }
 
             if (!ModelState.IsValid)
@@ -112,14 +138,15 @@ namespace MyApiWithSwagger.Controllers
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public IActionResult Delete(int id)
         {
             if (id <= 0)
             {
-                return NotFound("Invalid book id.");
+                return BadRequest(new { error = "Invalid book id." });
             }
 
-            var result = _bookService.Delete(id );
+            var result = _bookService.Delete(id);
             if (!result.Success)
             {
                 if (result.ErrorMessage!.Contains("not found"))

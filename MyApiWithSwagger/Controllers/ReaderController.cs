@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Services.Implementations;
 using Services.Interfaces;
+using System.Net;
 using static System.Reflection.Metadata.BlobBuilder;
 
 namespace MyApiWithSwagger.Controllers
@@ -20,40 +21,55 @@ namespace MyApiWithSwagger.Controllers
         }
         [HttpGet]
         [ProducesResponseType(typeof(List<ReaderDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetAll()
         {
-            return Ok(_readerService.GetAll().ToList());
+            var allReaders = _readerService.GetAll();
+            if (!allReaders.Any())
+            {
+                return NotFound("There are currently no readers․");
+            }
+            return Ok(allReaders);
         }
 
-        [HttpGet("reader/{readerId}/history")]
-        [ProducesResponseType(typeof(List<ReaderDTO>), StatusCodes.Status200OK)]
+        [HttpGet("{readerId}/history")]
+        [ProducesResponseType(typeof(List<BorrowRecord>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetReaderHistory(int readerId)
         {
-            return Ok(_readerService.GetReaderHistory(readerId).ToList());
+            var history = _readerService.GetAll();
+            if (!history.Any())
+            {
+                return NotFound($"No history found for reader with ID {readerId}");
+            }
+            return Ok(history);
         }
 
         [HttpGet("{id}")]
         [ProducesResponseType(typeof(ReaderDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public IActionResult Get(int id)
         {
             if (id <= 0)
             {
-                return NotFound($"Reader with id = {id} is not found.");
+                return BadRequest(new { error = "Invalid reader id." });
             }
 
-            var item = _readerService.Get(id);
-            if (item is null)
+            var reader = _readerService.Get(id);
+            if (reader is null)
             {
                 return NotFound($"Reader with id = {id} is not found.");
             }
 
-            return Ok(item);
+            return Ok(reader);
         }
 
         [HttpPost]
         [ProducesResponseType(typeof(ReaderDTO), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult Add(ReaderDTO readerDTO)
         {
             if (readerDTO is null)
@@ -66,10 +82,19 @@ namespace MyApiWithSwagger.Controllers
                 return BadRequest(ModelState);
             }
 
-            var(result,readerId) = _readerService.Add(readerDTO);
+            var (result, readerId) = _readerService.Add(readerDTO);
             if (!result.Success)
             {
-                return Conflict(new { error = result.ErrorMessage });
+                if (result.ErrorMessage!.Contains("not found"))
+                {
+                    return NotFound(new { error = result.ErrorMessage });
+                }
+                else if (result.ErrorMessage!.Contains("exists"))
+                {
+                    return Conflict(new { error = result.ErrorMessage });
+                }
+
+                return BadRequest(new { error = result.ErrorMessage });
             }
 
             return CreatedAtAction(nameof(Get), new { id = readerId }, result.Data);
@@ -79,11 +104,13 @@ namespace MyApiWithSwagger.Controllers
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
         public IActionResult Update(int id, ReaderDTO readerDTO)
         {
             if (readerDTO is null)
             {
-                return NotFound($"Reader with id = {id} is not found.");
+                return BadRequest(new { error = "Reader is required." });
             }
 
             if (!ModelState.IsValid)
@@ -95,7 +122,13 @@ namespace MyApiWithSwagger.Controllers
             if (!result.Success)
             {
                 if (result.ErrorMessage!.Contains("not found"))
+                {
                     return NotFound(new { error = result.ErrorMessage });
+                }
+                else if (result.ErrorMessage!.Contains("exists"))
+                {
+                    return Conflict(new { error = result.ErrorMessage });
+                }
 
                 return BadRequest(new { error = result.ErrorMessage });
             }
@@ -110,7 +143,7 @@ namespace MyApiWithSwagger.Controllers
         {
             if (id <= 0)
             {
-                return NotFound($"Reader with id = {id} is not found.");
+                return BadRequest(new { error = "Invalid reader id." });
             }
 
             var result = _readerService.Delete(id);
