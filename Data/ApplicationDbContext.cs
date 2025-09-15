@@ -30,9 +30,9 @@ namespace Data
                 new Book { Id = 4, Title = "Clean Code", Author = "Robert C. Martin", ISBN = "978-0132350884", PublishedYear = 2021, TotalCopies = 3, AvailableCopies = 3 }
             );
             modelBuilder.Entity<Reader>().HasData(
-                new Reader { Id = 1, FullName = "Ani Hakobyan", Email = "ani@mail.com", PhoneNumber = "43993555" },
-                new Reader { Id = 2, FullName = "David Sargsyan", Email = "david@mail.com", PhoneNumber = "98323322" },
-                new Reader { Id = 3,FullName = "Edgar Gasparyan", Email = "edgargasparyan10.12.2006@gmail.com",PhoneNumber = "99132004"}
+                new Reader { Id = 1, FullName = "Ani Hakobyan", Email = "ani@mail.com", PhoneNumber = "+37443993555" },
+                new Reader { Id = 2, FullName = "David Sargsyan", Email = "david@mail.com", PhoneNumber = "+37498323322" },
+                new Reader { Id = 3,FullName = "Edgar Gasparyan", Email = "edgargasparyan10.12.2006@gmail.com",PhoneNumber = "+37499132004"}
             );
 
             modelBuilder.Entity<BorrowRecord>().HasData(

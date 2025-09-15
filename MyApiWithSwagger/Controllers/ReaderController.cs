@@ -67,6 +67,10 @@ namespace MyApiWithSwagger.Controllers
             }
 
             var(result,readerId) = _readerService.Add(readerDTO);
+            if (!result.Success)
+            {
+                return Conflict(new { error = result.ErrorMessage });
+            }
 
             return CreatedAtAction(nameof(Get), new { id = readerId }, result.Data);
         }

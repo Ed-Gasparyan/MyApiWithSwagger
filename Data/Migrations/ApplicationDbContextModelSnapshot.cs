@@ -185,21 +185,21 @@ namespace Data.Migrations
                             Id = 1,
                             Email = "ani@mail.com",
                             FullName = "Ani Hakobyan",
-                            PhoneNumber = "43993555"
+                            PhoneNumber = "+37443993555"
                         },
                         new
                         {
                             Id = 2,
                             Email = "david@mail.com",
                             FullName = "David Sargsyan",
-                            PhoneNumber = "98323322"
+                            PhoneNumber = "+37498323322"
                         },
                         new
                         {
                             Id = 3,
                             Email = "edgargasparyan10.12.2006@gmail.com",
                             FullName = "Edgar Gasparyan",
-                            PhoneNumber = "99132004"
+                            PhoneNumber = "+37499132004"
                         });
                 });
 
