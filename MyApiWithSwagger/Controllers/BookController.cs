@@ -1,6 +1,7 @@
 ﻿using Data;
 using Domain.DTO;
 using Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -21,8 +22,9 @@ namespace MyApiWithSwagger.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "User,Admin")]
         [ProducesResponseType(typeof(List<BookDTO>), StatusCodes.Status200OK)]
-        public IActionResult GetAll()
+        public IActionResult GetAllBooks()
         {
             var allBooks = _bookService.GetAll();
             if (!allBooks.Any())
@@ -33,6 +35,7 @@ namespace MyApiWithSwagger.Controllers
         }
 
         [HttpGet("available")]
+        [Authorize(Roles = "User,Admin")]
         [ProducesResponseType(typeof(List<BookDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public IActionResult GetAvailableBooks()
@@ -45,24 +48,12 @@ namespace MyApiWithSwagger.Controllers
             return Ok(availableBooks);
         }
 
-        [HttpGet("{bookId}/history")]
-        [ProducesResponseType(typeof(List<BorrowRecordDTO>), StatusCodes.Status200OK)]
-        public IActionResult GetBookHistory(int bookId)
-        {
-            var bookHistory = _bookService.GetBookHistory(bookId).ToList();
-            if (!bookHistory.Any())
-            {
-                return NotFound($"No history found for book with ID {bookId}");
-            }
-            return Ok(bookHistory);
-        }
-
-
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(BookDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public IActionResult Get(int id)
+        public IActionResult GetBookById(int id)
         {
             if (id <= 0)
             {
@@ -79,10 +70,11 @@ namespace MyApiWithSwagger.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public IActionResult Add(BookDTO bookDTO)
+        public IActionResult CreateBook(BookDTO bookDTO)
         {
             if (bookDTO is null)
             {
@@ -97,16 +89,17 @@ namespace MyApiWithSwagger.Controllers
             var (result, bookId) = _bookService.Add(bookDTO);
             if (!result.Success)
             {
-                return Conflict(new { error = result.ErrorMessage });
+                return Conflict(new { error = result.Message });
             }
-            return CreatedAtAction(nameof(Get), new { id = bookId }, result.Data);
+            return CreatedAtAction(nameof(GetBookById), new { id = bookId }, result.Data);
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult Update(int id, BookDTO bookDTO)
+        public IActionResult UpdateBook(int id, BookDTO bookDTO)
         {
             if (bookDTO is null)
             {
@@ -126,20 +119,21 @@ namespace MyApiWithSwagger.Controllers
             var result = _bookService.Update(id, bookDTO);
             if (!result.Success)
             {
-                if (result.ErrorMessage!.Contains("not found"))
-                    return NotFound(new { error = result.ErrorMessage });
+                if (result.Message!.Contains("not found"))
+                    return NotFound(new { error = result.Message });
 
-                return BadRequest(new { error = result.ErrorMessage });
+                return BadRequest(new { error = result.Message });
             }
 
             return NoContent();
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public IActionResult Delete(int id)
+        public IActionResult DeleteBook(int id)
         {
             if (id <= 0)
             {
@@ -149,10 +143,10 @@ namespace MyApiWithSwagger.Controllers
             var result = _bookService.Delete(id);
             if (!result.Success)
             {
-                if (result.ErrorMessage!.Contains("not found"))
-                    return NotFound(new { error = result.ErrorMessage });
+                if (result.Message!.Contains("not found"))
+                    return NotFound(new { error = result.Message });
 
-                return BadRequest(new { error = result.ErrorMessage });
+                return BadRequest(new { error = result.Message });
             }
 
             return NoContent();

@@ -8,10 +8,17 @@ using System.Threading.Tasks;
 
 namespace Services.Interfaces
 {
-    public interface IBorrowRecordService : ICrudRepository<BorrowRecordDTO>
+    public interface IBorrowRecordService 
     {
         public ServiceResult<bool> ReturnBook(int borrowRecordId);  
         public IQueryable<BorrowRecordDTO> GetActiveBorrows();
+
+        public IQueryable<BorrowRecordDTO> GetBookHistory(int bookId);
+
+        public IQueryable<BorrowRecordDTO> GetReaderHistory(int readerId);
+        public IQueryable<BorrowRecordDTO> GetOverdueBooks();
+
+        public ServiceResult<BorrowRecordDTO> BorrowBook(BorrowRecordDTO borrowRecordDTO);
 
     }
 }

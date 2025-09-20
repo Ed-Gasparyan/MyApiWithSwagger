@@ -7,6 +7,7 @@ using Services.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -27,26 +28,8 @@ namespace Services.Implementations
                 .Select(x => new ReaderDTO
                 {
                     FullName = x.FullName,
-                    Email = x.Email,
-                    PhoneNumber = x.PhoneNumber
+                    Email = x.Email
                 });
-        }
-
-        public IQueryable<BorrowRecordDTO>GetReaderHistory(int readerId)
-        {
-            return _context.BorrowRecords
-                           .Include(x => x.Book)
-                           .Include(x => x.Reader)
-                           .Where(x => x.ReaderId == readerId)
-                           .Select(x => new BorrowRecordDTO
-                           {
-                               BookName = x.Book.Title,
-                               ReaderName = x.Reader.FullName,
-                               Email = x.Reader.Email,
-                               AuthorName = x.Book.Author,
-                               ReaderId = x.ReaderId,
-                               BookId = x.BookId,
-                           });
         }
         public ReaderDTO? Get(int id)
         {
@@ -55,8 +38,7 @@ namespace Services.Implementations
                 .Select(x => new ReaderDTO
                 {
                     FullName = x.FullName,
-                    Email = x.Email,
-                    PhoneNumber = x.PhoneNumber
+                    Email = x.Email
                 })
                 .SingleOrDefault();
         }
@@ -72,18 +54,10 @@ namespace Services.Implementations
                 return (ServiceResult<ReaderDTO>.Fail("A reader with the same email already exists."), 0);
             }
 
-            bool checkPhoneNumber = _context.Readers
-                 .Any(x => x.PhoneNumber == obj.PhoneNumber);
-
-            if (checkPhoneNumber)
-            {
-                return (ServiceResult<ReaderDTO>.Fail("A reader with the same phone number already exists."), 0);
-            }
             Reader reader = new Reader
             {
                 FullName = obj.FullName,
                 Email = obj.Email,
-                PhoneNumber = obj.PhoneNumber
             };
 
             _context.Readers.Add(reader);
@@ -93,7 +67,6 @@ namespace Services.Implementations
             {
                 FullName = reader.FullName,
                 Email = reader.Email,
-                PhoneNumber = reader.PhoneNumber
             };
 
 
@@ -110,13 +83,8 @@ namespace Services.Implementations
             if (checkEmail)
                 return ServiceResult<ReaderDTO>.Fail("A reader with the same email already exists.");
 
-            bool checkPhoneNumber = _context.Readers.Any(x => x.PhoneNumber == obj.PhoneNumber && x.Id != id);
-            if (checkPhoneNumber)
-                return ServiceResult<ReaderDTO>.Fail("A reader with the same phone number already exists.");
-
             reader.FullName = obj.FullName;
             reader.Email = obj.Email;
-            reader.PhoneNumber = obj.PhoneNumber;
 
             _context.SaveChanges();
 
@@ -124,7 +92,6 @@ namespace Services.Implementations
             {
                 FullName = reader.FullName,
                 Email = reader.Email,
-                PhoneNumber = reader.PhoneNumber
             };
 
             return ServiceResult<ReaderDTO>.Ok(updatedDto);
@@ -145,5 +112,21 @@ namespace Services.Implementations
             return ServiceResult<bool>.Ok(true);
 
         }
+
+        public ReaderDTO GetProfile(int userId)
+        {
+            var user = _context.Readers.Find(userId)!;
+
+
+            ReaderDTO readerDTO = new ReaderDTO
+            {
+                FullName = user.FullName,
+                Email = user.Email
+            };
+
+            return readerDTO;
+
+        }
+
     }
 }

@@ -1,16 +1,13 @@
-﻿using Domain.DTO;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using Domain.Models;
 namespace Services.Interfaces
 {
-    public interface IBookService : ICrudRepository<BookDTO>
+    public interface IJwtService
     {
-        IQueryable<BookDTO> GetAvailableBooks();
-
-
+        public string GenerateToken(Reader user);
     }
 }

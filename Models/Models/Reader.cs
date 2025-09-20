@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Swashbuckle.AspNetCore.Annotations;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -21,10 +22,14 @@ namespace Domain.Models
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
-        [Required(AllowEmptyStrings = false)]
-        [RegularExpression(@"^\+374\d{8}$", ErrorMessage = "Enter a valid Armenian phone number.")]
-        public string PhoneNumber { get; set; } = string.Empty;
+        [Required]
+        [MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$")]
+        [SwaggerSchema("Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")]
+        public string PasswordHash  { get; set; } = string.Empty;
 
+        [Required]
+        public string Role { get; set; } = "User";
         public List<BorrowRecord> BorrowRecords { get; set; } = new List<BorrowRecord>();
     }
 }

@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
-
 namespace Data.Migrations
 {
     /// <inheritdoc />
@@ -39,7 +37,8 @@ namespace Data.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     FullName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Role = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -55,7 +54,8 @@ namespace Data.Migrations
                     ReaderId = table.Column<int>(type: "int", nullable: false),
                     BookId = table.Column<int>(type: "int", nullable: false),
                     BorrowDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ReturnDate = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    ReturnDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ReturnDue = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -75,35 +75,9 @@ namespace Data.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Books",
-                columns: new[] { "Id", "Author", "AvailableCopies", "ISBN", "PublishedYear", "Title", "TotalCopies" },
-                values: new object[,]
-                {
-                    { 1, "John Doe", 5, "29192-33-221211", 2020, "C# Basics", 5 },
-                    { 2, "Jane Smith", 6, "3232-4442-19191", 2021, "ASP.NET Core", 6 },
-                    { 3, "Andrew Hunt", 10, "978-0201616224", 1999, "The Pragmatic Programmer", 10 },
-                    { 4, "Robert C. Martin", 3, "978-0132350884", 2021, "Clean Code", 3 }
-                });
-
-            migrationBuilder.InsertData(
                 table: "Readers",
-                columns: new[] { "Id", "Email", "FullName", "PhoneNumber" },
-                values: new object[,]
-                {
-                    { 1, "ani@mail.com", "Ani Hakobyan", "43993555" },
-                    { 2, "david@mail.com", "David Sargsyan", "98323322" },
-                    { 3, "edgargasparyan10.12.2006@gmail.com", "Edgar Gasparyan", "99132004" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "BorrowRecords",
-                columns: new[] { "Id", "BookId", "BorrowDate", "ReaderId", "ReturnDate" },
-                values: new object[,]
-                {
-                    { 1, 2, new DateTime(2025, 9, 14, 18, 19, 30, 0, DateTimeKind.Unspecified), 1, null },
-                    { 2, 3, new DateTime(2025, 9, 14, 18, 19, 30, 0, DateTimeKind.Unspecified), 3, null },
-                    { 3, 1, new DateTime(2025, 9, 14, 18, 19, 30, 0, DateTimeKind.Unspecified), 2, null }
-                });
+                columns: new[] { "Id", "Email", "FullName", "PasswordHash", "Role" },
+                values: new object[] { 1, "edgargasparyan10.12.2006@gmail.com", "Edgar Gasparyan", "$2a$11$k9jz6nBq6Z1H1lH3yXjMe.W6kZlCwXqfXiwI4VLvVQj5a/8f/6g2e", "Admin" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_BorrowRecords_BookId",

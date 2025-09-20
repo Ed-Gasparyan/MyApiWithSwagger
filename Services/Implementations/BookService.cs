@@ -48,23 +48,6 @@ namespace Services.Implementations
                 });
         }
 
-        public IQueryable<BorrowRecordDTO> GetBookHistory(int bookId)
-        {
-            return _context.BorrowRecords
-                           .Include(x => x.Book)
-                           .Include(x => x.Reader)
-                           .Where(x => x.BookId == bookId)
-                           .Select(x => new BorrowRecordDTO
-                           {
-                               BookName = x.Book.Title,
-                               ReaderName = x.Reader.FullName,
-                               Email = x.Reader.Email,
-                               AuthorName = x.Book.Author,
-                               ReaderId = x.ReaderId,
-                               BookId = x.BookId,
-                           });
-        }
-
         public BookDTO? Get(int id)
         {
             return _context.Books

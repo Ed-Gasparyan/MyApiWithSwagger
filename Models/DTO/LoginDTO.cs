@@ -7,16 +7,15 @@ using System.Threading.Tasks;
 
 namespace Domain.DTO
 {
-    public class ReaderDTO
+    public class LoginDTO
     {
-        [Required(AllowEmptyStrings = false)]
-        [MaxLength(100)]
-        public string FullName { get; set; } = string.Empty;
-
-        [Required(AllowEmptyStrings = false)]
-        [MaxLength(100)]
+        [Required]
         [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
+        [Required]
+        [MinLength(8)]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$")]
+        public string Password { get; set; } = string.Empty;
     }
 }

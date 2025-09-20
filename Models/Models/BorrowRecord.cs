@@ -28,5 +28,7 @@ namespace Domain.Models
 
         public DateTime? ReturnDate { get; set; } = null;
 
+        public DateTime ReturnDue { get; set; }
+
     }
 }

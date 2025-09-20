@@ -1,11 +1,13 @@
 ﻿using Data;
 using Domain.DTO;
 using Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Services.Implementations;
 using Services.Interfaces;
 using System.Net;
+using System.Security.Claims;
 using static System.Reflection.Metadata.BlobBuilder;
 
 namespace MyApiWithSwagger.Controllers
@@ -21,6 +23,7 @@ namespace MyApiWithSwagger.Controllers
         }
         [HttpGet]
         [ProducesResponseType(typeof(List<ReaderDTO>), StatusCodes.Status200OK)]
+        [Authorize(Roles = "User,Admin")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetAll()
         {
@@ -32,24 +35,29 @@ namespace MyApiWithSwagger.Controllers
             return Ok(allReaders);
         }
 
-        [HttpGet("{readerId}/history")]
+        [HttpGet("my-history")]
+        [Authorize(Roles = "User")]
         [ProducesResponseType(typeof(List<BorrowRecord>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetReaderHistory(int readerId)
+        public IActionResult GetMyHistory()
         {
-            var history = _readerService.GetAll();
-            if (!history.Any())
+
+            if (!int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out int userId))
             {
-                return NotFound($"No history found for reader with ID {readerId}");
+                return Unauthorized(new { message = "Invalid or missing user id in token" });
             }
-            return Ok(history);
+
+            var readerDTO = _readerService.GetProfile(userId);
+
+            return Ok(readerDTO);
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ReaderDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public IActionResult Get(int id)
+        public IActionResult GetReaderById(int id)
         {
             if (id <= 0)
             {
@@ -66,11 +74,12 @@ namespace MyApiWithSwagger.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(ReaderDTO), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult Add(ReaderDTO readerDTO)
+        public IActionResult CreateReader(ReaderDTO readerDTO)
         {
             if (readerDTO is null)
             {
@@ -85,28 +94,29 @@ namespace MyApiWithSwagger.Controllers
             var (result, readerId) = _readerService.Add(readerDTO);
             if (!result.Success)
             {
-                if (result.ErrorMessage!.Contains("not found"))
+                if (result.Message!.Contains("not found"))
                 {
-                    return NotFound(new { error = result.ErrorMessage });
+                    return NotFound(new { error = result.Message });
                 }
-                else if (result.ErrorMessage!.Contains("exists"))
+                else if (result.Message!.Contains("exists"))
                 {
-                    return Conflict(new { error = result.ErrorMessage });
+                    return Conflict(new { error = result.Message });
                 }
 
-                return BadRequest(new { error = result.ErrorMessage });
+                return BadRequest(new { error = result.Message });
             }
 
-            return CreatedAtAction(nameof(Get), new { id = readerId }, result.Data);
+            return CreatedAtAction(nameof(GetReaderById), new { id = readerId }, result.Data);
         }
 
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        public IActionResult Update(int id, ReaderDTO readerDTO)
+        public IActionResult UpdateReader(int id, ReaderDTO readerDTO)
         {
             if (readerDTO is null)
             {
@@ -121,25 +131,26 @@ namespace MyApiWithSwagger.Controllers
             var result = _readerService.Update(id, readerDTO);
             if (!result.Success)
             {
-                if (result.ErrorMessage!.Contains("not found"))
+                if (result.Message!.Contains("not found"))
                 {
-                    return NotFound(new { error = result.ErrorMessage });
+                    return NotFound(new { error = result.Message });
                 }
-                else if (result.ErrorMessage!.Contains("exists"))
+                else if (result.Message!.Contains("exists"))
                 {
-                    return Conflict(new { error = result.ErrorMessage });
+                    return Conflict(new { error = result.Message });
                 }
 
-                return BadRequest(new { error = result.ErrorMessage });
+                return BadRequest(new { error = result.Message });
             }
 
             return NoContent();
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult Delete(int id)
+        public IActionResult DeleteReader(int id)
         {
             if (id <= 0)
             {
@@ -149,10 +160,10 @@ namespace MyApiWithSwagger.Controllers
             var result = _readerService.Delete(id);
             if (!result.Success)
             {
-                if (result.ErrorMessage!.Contains("not found"))
-                    return NotFound(new { error = result.ErrorMessage });
+                if (result.Message!.Contains("not found"))
+                    return NotFound(new { error = result.Message });
 
-                return BadRequest(new { error = result.ErrorMessage });
+                return BadRequest(new { error = result.Message });
             }
 
             return NoContent();

@@ -1,4 +1,5 @@
 ﻿using Domain.DTO;
+using Services.Shared;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace Services.Interfaces
 {
     public interface IReaderService : ICrudRepository<ReaderDTO>
     {
-        IQueryable<BorrowRecordDTO> GetReaderHistory(int readerId);
 
+        public ReaderDTO GetProfile(int userId);
     }
 }

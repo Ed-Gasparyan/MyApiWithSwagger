@@ -1,6 +1,7 @@
 ﻿using Data;
 using Domain.DTO;
 using Domain.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,20 +21,10 @@ namespace MyApiWithSwagger.Controllers
         {
             _borrowRecordService = bookRecordService;
         }
-        [HttpGet]
-        [ProducesResponseType(typeof(IEnumerable<BorrowRecordDTO>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult GetAll()
-        {
-            var allBorrowRecords = _borrowRecordService.GetAll();
-            if (!allBorrowRecords.Any())
-            {
-                return NotFound("There are currently no records․");
-            }
-            return Ok(allBorrowRecords);
-        }
+
 
         [HttpGet("active")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(typeof(IEnumerable<BorrowRecordDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public IActionResult GetActiveBorrows()
@@ -46,34 +37,56 @@ namespace MyApiWithSwagger.Controllers
             return Ok(activeBorrows);
         }
 
-        [HttpGet("{id}")]
-        [ProducesResponseType(typeof(BorrowRecordDTO), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public IActionResult Get(int id)
+
+        [HttpGet("overdue")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(IEnumerable<BorrowRecordDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public IActionResult GetOverdueBooks()
         {
-            if (id <= 0)
+            var activeBorrows = _borrowRecordService.GetOverdueBooks();
+            if (!activeBorrows.Any())
             {
-                return BadRequest(new { error = "Invalid borrow record id." });
+                return NotFound("There are no overdue records at this time.");
             }
-
-            var borrowRecordDTO = _borrowRecordService.Get(id);
-
-            if (borrowRecordDTO is null)
-            {
-                return NotFound();
-            }
-
-            return Ok(borrowRecordDTO);
+            return Ok(activeBorrows);
         }
 
+
+        [HttpGet("books/{bookId}/history")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(List<BorrowRecordDTO>), StatusCodes.Status200OK)]
+        public IActionResult GetBookHistory(int bookId)
+        {
+            var bookHistory = _borrowRecordService.GetBookHistory(bookId).ToList();
+            if (!bookHistory.Any())
+            {
+                return NotFound($"No history found for book with ID {bookId}");
+            }
+            return Ok(bookHistory);
+        }
+
+        [HttpGet("readers/{readerId}/history")]
+        [Authorize(Roles = "Admin")] 
+        [ProducesResponseType(typeof(List<BorrowRecordDTO>), StatusCodes.Status200OK)]
+        public IActionResult GetReaderHistory(int readerId)
+        {
+            var readerHistory = _borrowRecordService.GetBookHistory(readerId).ToList();
+            if (!readerHistory.Any())
+            {
+                return NotFound($"No history found for book with ID {readerId}");
+            }
+            return Ok(readerHistory);
+        }
+
+
         [HttpPost]
+        [Authorize(Roles = "User,Admin")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-
-        public IActionResult Add(BorrowRecordDTO borrowRecordDTO)
+        public IActionResult BorrowBook(BorrowRecordDTO borrowRecordDTO)
         {
             if (borrowRecordDTO is null)
             {
@@ -84,68 +97,28 @@ namespace MyApiWithSwagger.Controllers
                 return BadRequest(ModelState);
             }
 
-            var (result, borrowRecordId) = _borrowRecordService.Add(borrowRecordDTO);
+            var result = _borrowRecordService.BorrowBook(borrowRecordDTO);
 
             if (!result.Success)
             {
-                if (result.ErrorMessage!.Contains("not found"))
+                if (result.Message!.Contains("not found"))
                 {
-                    return NotFound(new { error = result.ErrorMessage });
+                    return NotFound(new { error = result.Message });
                 }
-                else if (result.ErrorMessage!.Contains("exists"))
+                else if (result.Message!.Contains("exists"))
                 {
-                    return Conflict(new { error = result.ErrorMessage });
-                }
-
-                return BadRequest(new { error = result.ErrorMessage });
-            }
-            return CreatedAtAction(nameof(Get), new { id = borrowRecordId }, result.Data);
-        }
-
-
-        [HttpPut("{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public IActionResult Update(int id, BorrowRecordDTO borrowRecordDTO)
-        {
-            if (borrowRecordDTO is null)
-            {
-                return BadRequest(new { error = "Borrow record is required" });
-            }
-
-            if (id <= 0)
-            {
-                return BadRequest(new { error = "Invalid borrow record id." });
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = _borrowRecordService.Update(id, borrowRecordDTO);
-
-            if (!result.Success)
-            {
-                if (result.ErrorMessage!.Contains("not found"))
-                {
-                    return NotFound(new { error = result.ErrorMessage });
-                }
-                else if (result.ErrorMessage!.Contains("exists"))
-                {
-                    return Conflict(new { error = result.ErrorMessage });
+                    return Conflict(new { error = result.Message });
                 }
 
-                return BadRequest(new { error = result.ErrorMessage });
+                return BadRequest(new { error = result.Message });
             }
-
-            return NoContent();
+            return CreatedAtAction("", result.Data);
         }
 
         [HttpPatch("{id}/return")]
+        [Authorize(Roles = "User,Admin")]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
         public IActionResult ReturnBook(int id)
         {
@@ -157,38 +130,17 @@ namespace MyApiWithSwagger.Controllers
             var result = _borrowRecordService.ReturnBook(id);
             if (!result.Success)
             {
-                if (result.ErrorMessage!.Contains("not found"))
-                    return NotFound(new { error = result.ErrorMessage });
+                if (result.Message!.Contains("not found"))
+                    return NotFound(new { error = result.Message });
 
-                return BadRequest(new { error = result.ErrorMessage });
+                return BadRequest(new { error = result.Message });
             }
 
-            return NoContent();
-        }
-
-
-        [HttpDelete("{id}")]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-        public IActionResult Delete(int id)
-        {
-            if (id <= 0)
+            return Ok(new
             {
-                return BadRequest(new { error = "Invalid borrow record id." });
-            }
-
-            var result = _borrowRecordService.Delete(id);
-
-            if (!result.Success)
-            {
-                if (result.ErrorMessage!.Contains("not found"))
-                    return NotFound(new { error = result.ErrorMessage });
-
-                return BadRequest(new { error = result.ErrorMessage });
-            }
-
-            return NoContent();
+                success = true,
+                message = result.Message
+            });
         }
     }
 }

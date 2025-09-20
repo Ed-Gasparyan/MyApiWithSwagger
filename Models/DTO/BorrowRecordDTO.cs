@@ -19,23 +19,5 @@ namespace Domain.DTO
 
         [Required]
         public int BookId { get; set; }
-
-        [Required(AllowEmptyStrings = false)]
-        [MaxLength(100)]
-        public string BookName { get; set; } = string.Empty;
-
-        [Required(AllowEmptyStrings = false)]
-        [MaxLength(100)]
-        public string ReaderName { get; set; } = string.Empty;
-
-        [Required(AllowEmptyStrings = false)]
-        [MaxLength(100)]
-        public string AuthorName { get; set; } = string.Empty;
-
-        [Required(AllowEmptyStrings = false)]
-        [MaxLength(100)]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
-
     }
 }

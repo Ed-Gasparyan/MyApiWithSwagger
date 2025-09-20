@@ -57,48 +57,6 @@ namespace Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Books");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Author = "John Doe",
-                            AvailableCopies = 4,
-                            ISBN = "29192-33-221211",
-                            PublishedYear = 2020,
-                            Title = "C# Basics",
-                            TotalCopies = 5
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Author = "Jane Smith",
-                            AvailableCopies = 5,
-                            ISBN = "3232-4442-19191",
-                            PublishedYear = 2021,
-                            Title = "ASP.NET Core",
-                            TotalCopies = 6
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Author = "Andrew Hunt",
-                            AvailableCopies = 10,
-                            ISBN = "978-0201616224",
-                            PublishedYear = 1999,
-                            Title = "The Pragmatic Programmer",
-                            TotalCopies = 10
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Author = "Robert C. Martin",
-                            AvailableCopies = 3,
-                            ISBN = "978-0132350884",
-                            PublishedYear = 2021,
-                            Title = "Clean Code",
-                            TotalCopies = 3
-                        });
                 });
 
             modelBuilder.Entity("Domain.Models.BorrowRecord", b =>
@@ -121,6 +79,9 @@ namespace Data.Migrations
                     b.Property<DateTime?>("ReturnDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime>("ReturnDue")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BookId");
@@ -128,29 +89,6 @@ namespace Data.Migrations
                     b.HasIndex("ReaderId");
 
                     b.ToTable("BorrowRecords");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            BookId = 2,
-                            BorrowDate = new DateTime(2025, 9, 14, 18, 19, 30, 0, DateTimeKind.Unspecified),
-                            ReaderId = 1
-                        },
-                        new
-                        {
-                            Id = 2,
-                            BookId = 3,
-                            BorrowDate = new DateTime(2025, 9, 14, 18, 19, 30, 0, DateTimeKind.Unspecified),
-                            ReaderId = 3
-                        },
-                        new
-                        {
-                            Id = 3,
-                            BookId = 1,
-                            BorrowDate = new DateTime(2025, 9, 14, 18, 19, 30, 0, DateTimeKind.Unspecified),
-                            ReaderId = 2
-                        });
                 });
 
             modelBuilder.Entity("Domain.Models.Reader", b =>
@@ -171,7 +109,11 @@ namespace Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("PhoneNumber")
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Role")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -183,23 +125,10 @@ namespace Data.Migrations
                         new
                         {
                             Id = 1,
-                            Email = "ani@mail.com",
-                            FullName = "Ani Hakobyan",
-                            PhoneNumber = "+37443993555"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Email = "david@mail.com",
-                            FullName = "David Sargsyan",
-                            PhoneNumber = "+37498323322"
-                        },
-                        new
-                        {
-                            Id = 3,
                             Email = "edgargasparyan10.12.2006@gmail.com",
                             FullName = "Edgar Gasparyan",
-                            PhoneNumber = "+37499132004"
+                            PasswordHash = "$2a$11$k9jz6nBq6Z1H1lH3yXjMe.W6kZlCwXqfXiwI4VLvVQj5a/8f/6g2e",
+                            Role = "Admin"
                         });
                 });
 

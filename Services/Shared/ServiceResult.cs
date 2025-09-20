@@ -11,18 +11,19 @@ namespace Services.Shared
         public bool Success { get; private set; }
 
 
-        public string? ErrorMessage { get; private set; }
+        public string? Message { get; private set; }
 
         public T? Data { get; private set; }
 
-        private ServiceResult(bool success, T? data, string? errorMessage)
+        private ServiceResult(bool success, T? data, string? message)
         {
             Success = success;
             Data = data;
-            ErrorMessage = errorMessage;
+            Message = message;
         }
 
         public static ServiceResult<T> Ok(T? data) => new ServiceResult<T>(true, data, null);
+        public static ServiceResult<T> Ok(T? data,string warningMessage) => new ServiceResult<T>(true, data, warningMessage);
 
         public static ServiceResult<T> Fail(string errorMessage) => new ServiceResult<T>(false, default, errorMessage);
     }
